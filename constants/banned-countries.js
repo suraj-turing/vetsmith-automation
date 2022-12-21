@@ -1,0 +1,25 @@
+
+export const banned_countries_list = [
+  'Afghanistan',
+   'Argentina',
+   'China',
+   'Cuba',
+   'Ecuador',
+   'France',
+   'Germany',
+   'Hong Kong',
+   'Iran',
+   'Iraq',
+   'Italy',
+   'Japan',
+   'Mexico',
+   'North Korea',
+   'Philippines',
+   'Russia',
+   'South Korea',
+   'Spain',
+   'Syria',
+   'Taiwan',
+   'Ukraine',
+   'Venezuela'
+]

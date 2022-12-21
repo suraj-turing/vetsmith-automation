@@ -1,0 +1,1 @@
+export const last_report_date = '2022-12-19'
