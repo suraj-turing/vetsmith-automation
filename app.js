@@ -25,7 +25,6 @@ const run = async () => {
 };
 
 const startVetsmithAutomation = async () => {
-    log('startVetsmithAutomation');
     const newVetsmithDevelopers = await getNewVetsmithDevelopers();
     log('getNewVetsmithDevelopers:', newVetsmithDevelopers.length)
 }
@@ -39,7 +38,7 @@ const getNewVetsmithDevelopers = async () => {
             and challenge_id=375 
             and total_score_by_cases>=12 
             and submit_time>='${last_report_date}'
-            and country not in ${getStringifiedBannedCountriesList()}
+            and country_id not in (select id from ${tables.TPM_COUNTIES} where name in ${getStringifiedBannedCountriesList()})
     `;
     log('query:', query);
     const developersArray = await dbUtil.executeSQL(query);
