@@ -1,16 +1,9 @@
-import chalk from 'chalk';
 import dotenv from 'dotenv';
 import dbUtil from './utilities/dbUtil.js';
 import tables from './constants/tables.js';
-import { banned_countries_list } from './constants/banned-countries.js';
-import { excluded_developers_list } from './constants/excluded-developers-list.js';
-import { last_report_date } from './constants/last-report-date.js';
-
+import { log, logError, logWarn } from "./utilities/logUtils.js";
+import { getDataFromGoogleSheet } from './utilities/googleSheetUtil.js';
 dotenv.config();
-
-const logError = (message, params) => { console.log(chalk.red(message), params || ''); }
-const logWarn = (message, params) => { console.log(chalk.yellow(message), params || ''); }
-const log = (message, params) => { console.log(chalk.green(message), params || ''); }
 
 
 const run = async () => {
@@ -31,27 +24,40 @@ const startVetsmithAutomation = async () => {
 
 // challenge_id=375 came from `select step_acc_id from `turing-230020.raw.dv2_custom_flow_steps` where step='coding_challenge' and flow_id in (128, 130);`
 const getNewVetsmithDevelopers = async () => {
+    const devList = await getDataFromGoogleSheet(process.env.READ_SHEET_NAME_RANGE_USER)
+    const countries = await getDataFromGoogleSheet(
+      process.env.READ_SHEET_NAME_RANGE_COUNTRY, 'string'
+    );
+    if (!devList || !countries || !devList.length || !countries.length) {
+        logWarn(`Unable to fetch devList or list of banned countries; Total devList = ${devList.length} ;  Total banned countries = ${countries.length}`);
+        return
+    }
+
+    const getExcludedDevlopersList = () => {
+      return "(" + devList.join(",") + ")";
+    };
+
+    const getStringifiedBannedCountriesList = () => {
+      return "('" + countries.join("','") + "')";
+    };
+
     const query = `
-        select * from ${tables.DV2_CHALLENGE_SUBMIT} cs left join ${tables.DEVELOPER_DETAIL} dd 
+        select * from ${tables.DV2_CHALLENGE_SUBMIT} cs left join ${
+      tables.DEVELOPER_DETAIL
+    } dd 
             on cs.user_id=dd.user_id 
         where cs.user_id not in ${getExcludedDevlopersList()}
             and challenge_id=375 
             and total_score_by_cases>=12 
-            and submit_time>='${last_report_date}'
-            and country_id not in (select id from ${tables.TPM_COUNTIES} where name in ${getStringifiedBannedCountriesList()})
+            and submit_time>='${process.env.LAST_REPORT_DATE}'
+            and country_id not in (select id from ${
+              tables.TPM_COUNTIES
+            } where name in ${getStringifiedBannedCountriesList()})
     `;
-    log('query:', query);
+    // log('query:', query);
     const developersArray = await dbUtil.executeSQL(query);
     return developersArray.map(dev => dev.user_id)
 };
-
-const getExcludedDevlopersList = () => {
-    return "("+excluded_developers_list.join(",")+")";
-}
-
-const getStringifiedBannedCountriesList = () => {
-    return "('"+banned_countries_list.join("','")+"')";
-}
 
 run().then(() => {
     log('All done!');
